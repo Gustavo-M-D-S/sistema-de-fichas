@@ -1,229 +1,579 @@
-const API_BASE_URL = 'https://607b6dkm-5000.brs.devtunnels.ms/'; // Substitua pela URL do seu backend
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Fichas de Membros</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-// Gerenciamento de estado
-let currentUser = null;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
 
-// Funções de navegação
-function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.remove('active');
-    });
-    document.getElementById(screenId).classList.add('active');
-}
+        .screen {
+            display: none;
+        }
 
-// Autenticação
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+        .screen.active {
+            display: block;
+        }
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password })
-        });
+        /* Login Styles */
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
 
-        const data = await response.json();
-        
-        if (response.ok) {
-            currentUser = data.user;
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .login-container input,
+        .login-container select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .login-container button {
+            width: 100%;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .login-container button:hover {
+            background: #0056b3;
+        }
+
+        /* Dashboard Styles */
+        header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .controls {
+            padding: 20px;
+            background: white;
+            margin: 20px;
+            border-radius: 8px;
+        }
+
+        .controls input {
+            padding: 10px;
+            width: 300px;
+            margin-right: 10px;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .members-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .member-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .member-card h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .member-card p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .member-card button {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .close {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal-content form div {
+            margin: 15px 0;
+        }
+
+        .modal-content label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .member-form {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .member-form div {
+            margin: 15px 0;
+        }
+
+        .member-form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .member-form input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .member-form button {
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Tela de Login -->
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <h2>Login</h2>
+                <form id="login-form">
+                    <input type="email" id="email" placeholder="E-mail" required>
+                    <input type="password" id="password" placeholder="Senha" required>
+                    <button type="submit">Entrar</button>
+                </form>
+                <p>Não tem conta? <a href="#" onclick="showScreen('register-screen')">Registrar</a></p>
+                <button onclick="adminLogin()" style="margin-top: 10px; background: #dc3545; width: 100%; padding: 10px; color: white; border: none; border-radius: 4px; cursor: pointer;">Login como Admin</button>
+            </div>
+        </div>
+
+        <!-- Tela de Registro -->
+        <div id="register-screen" class="screen">
+            <div class="login-container">
+                <h2>Registrar</h2>
+                <form id="register-form">
+                    <input type="text" id="reg-name" placeholder="Nome completo" required>
+                    <input type="email" id="reg-email" placeholder="E-mail" required>
+                    <input type="password" id="reg-password" placeholder="Senha" required>
+                    <select id="reg-role">
+                        <option value="member">Membro</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                    <button type="submit">Registrar</button>
+                </form>
+                <p>Já tem conta? <a href="#" onclick="showScreen('login-screen')">Fazer login</a></p>
+            </div>
+        </div>
+
+        <!-- Dashboard do Admin -->
+        <div id="admin-dashboard" class="screen">
+            <header>
+                <h1>Painel Administrativo</h1>
+                <button onclick="logout()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Sair</button>
+            </header>
             
-            if (data.user.role === 'admin') {
-                showScreen('admin-dashboard');
-                loadMembers();
-            } else {
-                showScreen('member-dashboard');
-                loadMemberForm();
-            }
-        } else {
-            alert(data.error || 'Erro no login');
-        }
-    } catch (error) {
-        alert('Erro de conexão');
-    }
-});
+            <div class="controls">
+                <input type="text" id="search-member" placeholder="Buscar membro...">
+                <button onclick="loadMembers()">Atualizar</button>
+            </div>
 
-document.getElementById('register-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const userData = {
-        name: document.getElementById('reg-name').value,
-        email: document.getElementById('reg-email').value,
-        password: document.getElementById('reg-password').value,
-        role: document.getElementById('reg-role').value
-    };
+            <div id="members-list" class="members-grid">
+                <!-- Lista de membros será carregada aqui -->
+            </div>
+        </div>
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/auth/register`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(userData)
-        });
+        <!-- Dashboard do Membro -->
+        <div id="member-dashboard" class="screen">
+            <header>
+                <h1>Minha Ficha</h1>
+                <button onclick="logout()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Sair</button>
+            </header>
+            
+            <div id="member-form-container">
+                <!-- Formulário do membro será carregado aqui -->
+            </div>
+        </div>
+    </div>
 
-        const data = await response.json();
-        
-        if (response.ok) {
-            alert('Registro realizado com sucesso!');
-            showScreen('login-screen');
-        } else {
-            alert(data.error || 'Erro no registro');
-        }
-    } catch (error) {
-        alert('Erro de conexão');
-    }
-});
-
-// Funções do Admin
-async function loadMembers() {
-    try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/members`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.ok) {
-            const members = await response.json();
-            displayMembers(members);
-        }
-    } catch (error) {
-        console.error('Erro ao carregar membros:', error);
-    }
-}
-
-function displayMembers(members) {
-    const container = document.getElementById('members-list');
-    container.innerHTML = '';
-
-    members.forEach(member => {
-        const card = document.createElement('div');
-        card.className = 'member-card';
-        card.innerHTML = `
-            <h3>${member.name}</h3>
-            <p><strong>Email:</strong> ${member.email}</p>
-            <p><strong>Entrada:</strong> ${formatDate(member.entryDate)}</p>
-            <p><strong>Saída:</strong> ${member.exitDate ? formatDate(member.exitDate) : 'Ativo'}</p>
-            <p><strong>Cargo:</strong> ${member.position}</p>
-            <button onclick="openEditModal('${member._id}')">Editar</button>
-        `;
-        container.appendChild(card);
-    });
-}
-
-function openEditModal(memberId) {
-    // Buscar dados do membro e preencher o modal
-    // Implementar conforme necessário
-    document.getElementById('edit-modal').style.display = 'block';
-}
-
-function closeModal() {
-    document.getElementById('edit-modal').style.display = 'none';
-}
-
-// Funções do Membro
-function loadMemberForm() {
-    const user = JSON.parse(localStorage.getItem('user'));
-    const container = document.getElementById('member-form-container');
-    
-    container.innerHTML = `
-        <div class="member-form">
-            <form id="update-member-form">
+    <!-- Modal para editar ficha -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3>Editar Ficha</h3>
+            <form id="edit-form">
+                <input type="hidden" id="edit-id">
                 <div>
                     <label>Nome:</label>
-                    <input type="text" id="member-name" value="${user.name}" required>
+                    <input type="text" id="edit-name" required>
                 </div>
                 <div>
-                    <label>Email:</label>
-                    <input type="email" id="member-email" value="${user.email}" required>
+                    <label>E-mail:</label>
+                    <input type="email" id="edit-email" required>
                 </div>
                 <div>
                     <label>Data de Entrada:</label>
-                    <input type="date" id="member-entry-date" value="${user.entryDate}" required>
+                    <input type="date" id="edit-entry-date" required>
                 </div>
                 <div>
                     <label>Data de Saída:</label>
-                    <input type="date" id="member-exit-date" value="${user.exitDate || ''}">
+                    <input type="date" id="edit-exit-date">
                 </div>
                 <div>
                     <label>Cargo:</label>
-                    <input type="text" id="member-position" value="${user.position}" required>
+                    <input type="text" id="edit-position" required>
                 </div>
-                <button type="submit">Atualizar Ficha</button>
+                <button type="submit" style="width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Salvar</button>
             </form>
         </div>
-    `;
+    </div>
 
-    document.getElementById('update-member-form').addEventListener('submit', updateMemberData);
-}
+    <script>
+        // URL do backend - ATUALIZE ESTA URL COM SEU BACKEND REAL
+        const API_BASE_URL = 'https://607b6dkm-5000.brs.devtunnels.ms/';
+        
+        // Gerenciamento de estado
+        let currentUser = null;
 
-async function updateMemberData(e) {
-    e.preventDefault();
-    
-    const token = localStorage.getItem('token');
-    const formData = {
-        name: document.getElementById('member-name').value,
-        email: document.getElementById('member-email').value,
-        entryDate: document.getElementById('member-entry-date').value,
-        exitDate: document.getElementById('member-exit-date').value || null,
-        position: document.getElementById('member-position').value
-    };
+        // Funções de navegação
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/members/profile`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(formData)
+        // Login como Admin
+        async function adminLogin() {
+            const adminToken = prompt("Digite o token de administrador:");
+            
+            if (adminToken) {
+                try {
+                    // Verificar se o token é válido
+                    const response = await fetch(`${API_BASE_URL}/members`, {
+                        headers: {
+                            'Authorization': `Bearer ${adminToken}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        localStorage.setItem('token', adminToken);
+                        localStorage.setItem('user', JSON.stringify({
+                            role: 'admin',
+                            name: 'Administrador'
+                        }));
+                        showScreen('admin-dashboard');
+                        loadMembers();
+                    } else {
+                        alert('Token de administrador inválido!');
+                    }
+                } catch (error) {
+                    alert('Erro de conexão com o servidor');
+                }
+            }
+        }
+
+        // Autenticação
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentUser = data.user;
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    if (data.user.role === 'admin') {
+                        showScreen('admin-dashboard');
+                        loadMembers();
+                    } else {
+                        showScreen('member-dashboard');
+                        loadMemberForm();
+                    }
+                } else {
+                    alert(data.detail || 'Erro no login');
+                }
+            } catch (error) {
+                alert('Erro de conexão com o servidor');
+            }
         });
 
-        if (response.ok) {
-            alert('Dados atualizados com sucesso!');
-        } else {
-            alert('Erro ao atualizar dados');
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userData = {
+                name: document.getElementById('reg-name').value,
+                email: document.getElementById('reg-email').value,
+                password: document.getElementById('reg-password').value,
+                role: document.getElementById('reg-role').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Registro realizado com sucesso!');
+                    showScreen('login-screen');
+                } else {
+                    alert(data.detail || 'Erro no registro');
+                }
+            } catch (error) {
+                alert('Erro de conexão com o servidor');
+            }
+        });
+
+        // Funções do Admin
+        async function loadMembers() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/members`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const members = await response.json();
+                    displayMembers(members);
+                } else {
+                    alert('Erro ao carregar membros. Verifique suas permissões.');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar membros:', error);
+                alert('Erro de conexão ao carregar membros');
+            }
         }
-    } catch (error) {
-        alert('Erro de conexão');
-    }
-}
 
-// Utilitários
-function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-}
+        function displayMembers(members) {
+            const container = document.getElementById('members-list');
+            container.innerHTML = '';
 
-function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    currentUser = null;
-    showScreen('login-screen');
-}
-
-// Verificar autenticação ao carregar a página
-window.addEventListener('load', () => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    
-    if (token && user) {
-        currentUser = JSON.parse(user);
-        if (currentUser.role === 'admin') {
-            showScreen('admin-dashboard');
-            loadMembers();
-        } else {
-            showScreen('member-dashboard');
-            loadMemberForm();
+            members.forEach(member => {
+                const card = document.createElement('div');
+                card.className = 'member-card';
+                card.innerHTML = `
+                    <h3>${member.name}</h3>
+                    <p><strong>Email:</strong> ${member.email}</p>
+                    <p><strong>Entrada:</strong> ${formatDate(member.entry_date)}</p>
+                    <p><strong>Saída:</strong> ${member.exit_date ? formatDate(member.exit_date) : 'Ativo'}</p>
+                    <p><strong>Cargo:</strong> ${member.position}</p>
+                    <button onclick="openEditModal('${member.id}')">Editar</button>
+                `;
+                container.appendChild(card);
+            });
         }
-    } else {
-        showScreen('login-screen');
-    }
-});
+
+        function openEditModal(memberId) {
+            // Implementação simplificada - em produção, buscar dados do membro
+            alert(`Editar membro ${memberId} - Funcionalidade em desenvolvimento`);
+            // document.getElementById('edit-modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
+
+        // Funções do Membro
+        function loadMemberForm() {
+            const user = JSON.parse(localStorage.getItem('user'));
+            const container = document.getElementById('member-form-container');
+            
+            container.innerHTML = `
+                <div class="member-form">
+                    <form id="update-member-form">
+                        <div>
+                            <label>Nome:</label>
+                            <input type="text" id="member-name" value="${user.name}" required>
+                        </div>
+                        <div>
+                            <label>Email:</label>
+                            <input type="email" id="member-email" value="${user.email}" required>
+                        </div>
+                        <div>
+                            <label>Data de Entrada:</label>
+                            <input type="date" id="member-entry-date" value="${user.entry_date || ''}" required>
+                        </div>
+                        <div>
+                            <label>Data de Saída:</label>
+                            <input type="date" id="member-exit-date" value="${user.exit_date || ''}">
+                        </div>
+                        <div>
+                            <label>Cargo:</label>
+                            <input type="text" id="member-position" value="${user.position || 'Membro'}" required>
+                        </div>
+                        <button type="submit">Atualizar Ficha</button>
+                    </form>
+                </div>
+            `;
+
+            document.getElementById('update-member-form').addEventListener('submit', updateMemberData);
+        }
+
+        async function updateMemberData(e) {
+            e.preventDefault();
+            
+            const token = localStorage.getItem('token');
+            const formData = {
+                name: document.getElementById('member-name').value,
+                email: document.getElementById('member-email').value,
+                entry_date: document.getElementById('member-entry-date').value,
+                exit_date: document.getElementById('member-exit-date').value || null,
+                position: document.getElementById('member-position').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/members/my-profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    alert('Dados atualizados com sucesso!');
+                } else {
+                    alert('Erro ao atualizar dados');
+                }
+            } catch (error) {
+                alert('Erro de conexão');
+            }
+        }
+
+        // Utilitários
+        function formatDate(dateString) {
+            if (!dateString) return 'Não definida';
+            try {
+                return new Date(dateString).toLocaleDateString('pt-BR');
+            } catch {
+                return dateString;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            currentUser = null;
+            showScreen('login-screen');
+        }
+
+        // Verificar autenticação ao carregar a página
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            if (token && user) {
+                currentUser = JSON.parse(user);
+                if (currentUser.role === 'admin') {
+                    showScreen('admin-dashboard');
+                    loadMembers();
+                } else {
+                    showScreen('member-dashboard');
+                    loadMemberForm();
+                }
+            } else {
+                showScreen('login-screen');
+            }
+        });
+    </script>
+</body>
+</html>
