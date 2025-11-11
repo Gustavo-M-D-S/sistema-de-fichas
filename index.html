@@ -1,839 +1,229 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anônimos do Gil - Mensagens Anônimas Compartilhadas</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #6a11cb;
-            --secondary-color: #2575fc;
-            --accent-color: #ff6b6b;
-            --bg-color: #f8f9fa;
-            --card-color: #ffffff;
-            --text-color: #2d3748;
-            --text-light: #718096;
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.12);
-            --radius: 16px;
-            --transition: all 0.3s ease;
-        }
+const API_BASE_URL = 'https://seu-backend.herokuapp.com'; // Substitua pela URL do seu backend
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        }
+// Gerenciamento de estado
+let currentUser = null;
 
-        body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            color: var(--text-color);
-            line-height: 1.6;
-            min-height: 100vh;
-            padding: 20px;
-        }
+// Funções de navegação
+function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+    });
+    document.getElementById(screenId).classList.add('active');
+}
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-        }
+// Autenticação
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
 
-        /* Header */
-        header {
-            text-align: center;
-            padding: 40px 20px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
-        }
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password })
+        });
 
-        header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .logo i {
-            font-size: 2.5rem;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-        }
-
-        h1 {
-            font-size: 2.8rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .subtitle {
-            font-size: 1.3rem;
-            opacity: 0.9;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* Layout para Desktop */
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            align-items: start;
-        }
-
-        .card {
-            background-color: var(--card-color);
-            border-radius: var(--radius);
-            padding: 30px;
-            box-shadow: var(--shadow);
-            transition: var(--transition);
-            height: 100%;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-hover);
-        }
-
-        h2 {
-            margin-bottom: 20px;
-            color: var(--primary-color);
-            font-size: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        h2 i {
-            font-size: 1.3rem;
-        }
-
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: 600;
-            font-size: 1rem;
-            color: var(--text-color);
-        }
-
-        textarea {
-            width: 100%;
-            padding: 18px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: var(--transition);
-            background-color: #f8fafc;
-            min-height: 160px;
-            resize: vertical;
-            line-height: 1.5;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            background-color: white;
-            box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.1);
-        }
-
-        .btn {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            border: none;
-            padding: 16px 32px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            font-weight: 600;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);
-            width: 100%;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(106, 17, 203, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            transform: none;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-        }
-
-        /* Mensagens */
-        .messages-container {
-            max-height: 600px;
-            overflow-y: auto;
-            padding-right: 10px;
-        }
-
-        .messages-container::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .messages-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        .messages-container::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
-            border-radius: 10px;
-        }
-
-        .message {
-            padding: 20px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--primary-color);
-            background: linear-gradient(to right, rgba(106, 17, 203, 0.03), rgba(106, 17, 203, 0.01));
-            border-radius: 0 12px 12px 0;
-            transition: var(--transition);
-            position: relative;
-        }
-
-        .message:hover {
-            transform: translateX(5px);
-            background: linear-gradient(to right, rgba(106, 17, 203, 0.05), rgba(106, 17, 203, 0.02));
-        }
-
-        .message-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            font-size: 0.9rem;
-            color: var(--text-light);
-        }
-
-        .message-content {
-            font-size: 1.05rem;
-            line-height: 1.6;
-            color: var(--text-color);
-        }
-
-        .message-actions {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 15px;
-            gap: 12px;
-            opacity: 0;
-            transition: var(--transition);
-        }
-
-        .message:hover .message-actions {
-            opacity: 1;
-        }
-
-        .action-btn {
-            background: none;
-            border: none;
-            color: var(--text-light);
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            padding: 6px 12px;
-            border-radius: 8px;
-            transition: var(--transition);
-        }
-
-        .action-btn:hover {
-            background-color: rgba(0, 0, 0, 0.05);
-            color: var(--primary-color);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-light);
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-
-        .empty-state p {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-        }
-
-        /* Stats */
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 25px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #f0f4ff, #e6eeff);
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: var(--text-light);
-        }
-
-        /* Footer */
-        footer {
-            text-align: center;
-            margin-top: 40px;
-            padding: 25px;
-            color: var(--text-light);
-            font-size: 0.95rem;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        /* Notification */
-        .notification {
-            position: fixed;
-            top: 30px;
-            right: 30px;
-            padding: 18px 25px;
-            border-radius: 12px;
-            background-color: #4CAF50;
-            color: white;
-            box-shadow: var(--shadow-hover);
-            transform: translateX(150%);
-            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            max-width: 400px;
-        }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .notification.error {
-            background-color: #f44336;
-        }
-
-        .notification i {
-            font-size: 1.3rem;
-        }
-
-        /* Loading */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Responsividade */
-        @media (max-width: 968px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .container {
-                gap: 20px;
-            }
-            
-            h1 {
-                font-size: 2.2rem;
-            }
-            
-            .card {
-                padding: 25px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 15px;
-            }
-            
-            header {
-                padding: 30px 15px;
-            }
-            
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .subtitle {
-                font-size: 1.1rem;
-            }
-            
-            .card {
-                padding: 20px;
-            }
-            
-            .stats {
-                grid-template-columns: 1fr;
-            }
-            
-            .notification {
-                right: 15px;
-                left: 15px;
-                max-width: none;
-            }
-        }
-
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.8rem;
-            }
-            
-            .logo i {
-                font-size: 2rem;
-            }
-            
-            .card {
-                padding: 18px;
-            }
-            
-            textarea {
-                padding: 15px;
-            }
-        }
-
-        /* Animações */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease forwards;
-        }
-
-        /* Dark mode opcional */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-color: #1a202c;
-                --card-color: #2d3748;
-                --text-color: #e2e8f0;
-                --text-light: #a0aec0;
-            }
-            
-            body {
-                background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
-            }
-            
-            textarea {
-                background-color: #4a5568;
-                border-color: #4a5568;
-                color: #e2e8f0;
-            }
-            
-            textarea:focus {
-                background-color: #2d3748;
-            }
-            
-            .stat-card {
-                background: linear-gradient(135deg, #2d3748, #4a5568);
-                border-color: #4a5568;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <div class="logo">
-                <i class="fas fa-ghost"></i>
-                <h1>Curioscat 2.0</h1>
-            </div>
-            <p class="subtitle">Mensagens anônimas compartilhadas para todo o grupo</p>
-        </header>
-
-        <div class="main-content">
-            <div class="card">
-                <h2><i class="fas fa-paper-plane"></i> Enviar Mensagem</h2>
-                <form id="messageForm">
-                    <div class="form-group">
-                        <label for="message">Sua mensagem anônima:</label>
-                        <textarea id="message" placeholder="Digite aqui sua mensagem... Ela será enviada de forma totalmente anônima para todo o grupo." required maxlength="500"></textarea>
-                        <div style="text-align: right; margin-top: 5px; font-size: 0.9rem; color: var(--text-light);">
-                            <span id="charCount">0</span>/500 caracteres
-                        </div>
-                    </div>
-                    <button type="submit" class="btn" id="submitBtn">
-                        <i class="fas fa-paper-plane"></i> Enviar Mensagem Anônima
-                    </button>
-                </form>
-                
-                <div style="margin-top: 25px;">
-                    <button class="btn btn-secondary" id="refreshBtn">
-                        <i class="fas fa-sync-alt"></i> Atualizar Mensagens
-                    </button>
-                </div>
-                
-                <div class="stats">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalMessages">0</div>
-                        <div class="stat-label">Total de Mensagens</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="todayMessages">0</div>
-                        <div class="stat-label">Hoje</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="onlineUsers">1</div>
-                        <div class="stat-label">Online</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2><i class="fas fa-inbox"></i> Mensagens Recebidas</h2>
-                <div class="messages-container" id="messagesContainer">
-                    <div class="empty-state">
-                        <i class="fas fa-comments"></i>
-                        <p>Carregando mensagens...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <footer>
-            <p>Curioscat 2.0 - Mensagens 100% anônimas | Todas as mensagens são compartilhadas em tempo real</p>
-            <p>As mensagens são armazenadas em nuvem e visíveis para todos no grupo</p>
-        </footer>
-    </div>
-
-    <div id="notification" class="notification">
-        <i class="fas fa-check-circle"></i>
-        <span id="notification-text"></span>
-    </div>
-
-    <script>
-        // Configuração do Google Sheets
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyztlEvZuhID8qnEDFJQWT0lLbSitYHQmokHPrY-aI6xMeHb3PW-mjMoJnkDzmZNRG2Og/exec';
+        const data = await response.json();
         
-        // Elementos DOM
-        const messageForm = document.getElementById('messageForm');
-        const messageInput = document.getElementById('message');
-        const messagesContainer = document.getElementById('messagesContainer');
-        const notification = document.getElementById('notification');
-        const notificationText = document.getElementById('notification-text');
-        const submitBtn = document.getElementById('submitBtn');
-        const refreshBtn = document.getElementById('refreshBtn');
-        const totalMessagesEl = document.getElementById('totalMessages');
-        const todayMessagesEl = document.getElementById('todayMessages');
-        const onlineUsersEl = document.getElementById('onlineUsers');
-        const charCountEl = document.getElementById('charCount');
-
-        // Estado da aplicação
-        let messages = [];
-        let lastUpdate = 0;
-        const UPDATE_INTERVAL = 10000; // 10 segundos
-
-        // Carregar mensagens ao iniciar
-        document.addEventListener('DOMContentLoaded', function() {
-            loadMessages();
-            startAutoRefresh();
+        if (response.ok) {
+            currentUser = data.user;
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
             
-            // Atualizar contador de caracteres
-            messageInput.addEventListener('input', function() {
-                charCountEl.textContent = this.value.length;
-            });
-            
-            // Botão de atualizar
-            refreshBtn.addEventListener('click', loadMessages);
+            if (data.user.role === 'admin') {
+                showScreen('admin-dashboard');
+                loadMembers();
+            } else {
+                showScreen('member-dashboard');
+                loadMemberForm();
+            }
+        } else {
+            alert(data.error || 'Erro no login');
+        }
+    } catch (error) {
+        alert('Erro de conexão');
+    }
+});
+
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const userData = {
+        name: document.getElementById('reg-name').value,
+        email: document.getElementById('reg-email').value,
+        password: document.getElementById('reg-password').value,
+        role: document.getElementById('reg-role').value
+    };
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData)
         });
 
-        // Enviar mensagem
-        messageForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const messageText = messageInput.value.trim();
-            
-            if (messageText === '') {
-                showNotification('Por favor, digite uma mensagem.', 'error');
-                messageInput.focus();
-                return;
-            }
-            
-            if (messageText.length > 500) {
-                showNotification('A mensagem deve ter no máximo 500 caracteres.', 'error');
-                return;
-            }
-            
-            // Desabilitar botão
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<div class="loading"></div> Enviando...';
-            
-            try {
-                // Enviar para o Google Sheets
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'addMessage',
-                        message: messageText,
-                        timestamp: new Date().toISOString()
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Limpar formulário
-                    messageInput.value = '';
-                    charCountEl.textContent = '0';
-                    
-                    // Recarregar mensagens
-                    await loadMessages();
-                    
-                    // Mostrar notificação
-                    showNotification('Mensagem enviada com sucesso!');
-                } else {
-                    throw new Error(result.error || 'Erro ao enviar mensagem');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                showNotification('Erro ao enviar mensagem. Tente novamente.', 'error');
-                
-                // Fallback para localStorage
-                const newMessage = {
-                    id: Date.now(),
-                    content: messageText,
-                    timestamp: new Date().toLocaleString('pt-BR'),
-                    date: new Date().toISOString().split('T')[0]
-                };
-                saveMessageLocal(newMessage);
-                showNotification('Mensagem salva localmente (modo offline).', 'error');
-            } finally {
-                // Reativar botão
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Mensagem Anônima';
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('Registro realizado com sucesso!');
+            showScreen('login-screen');
+        } else {
+            alert(data.error || 'Erro no registro');
+        }
+    } catch (error) {
+        alert('Erro de conexão');
+    }
+});
+
+// Funções do Admin
+async function loadMembers() {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/members`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
         });
 
-        // Carregar mensagens do servidor
-        async function loadMessages() {
-            try {
-                messagesContainer.innerHTML = `
-                    <div class="empty-state">
-                        <div class="loading"></div>
-                        <p>Carregando mensagens...</p>
-                    </div>
-                `;
-                
-                const response = await fetch(`${SCRIPT_URL}?action=getMessages&t=${Date.now()}`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    messages = result.messages || [];
-                    displayMessages();
-                    updateStats();
-                    lastUpdate = Date.now();
-                } else {
-                    throw new Error(result.error || 'Erro ao carregar mensagens');
-                }
-            } catch (error) {
-                console.error('Erro ao carregar mensagens:', error);
-                
-                // Fallback para localStorage
-                messages = JSON.parse(localStorage.getItem('curioscatMessages')) || [];
-                displayMessages();
-                updateStats();
-                showNotification('Usando mensagens locais (modo offline).', 'error');
-            }
+        if (response.ok) {
+            const members = await response.json();
+            displayMembers(members);
         }
+    } catch (error) {
+        console.error('Erro ao carregar membros:', error);
+    }
+}
 
-        // Exibir mensagens
-        function displayMessages() {
-            if (messages.length === 0) {
-                messagesContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-comments"></i>
-                        <p>Nenhuma mensagem ainda</p>
-                        <p>Seja o primeiro a compartilhar algo!</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            let messagesHTML = '';
-            messages.forEach(message => {
-                const timeAgo = getTimeAgo(message.timestamp);
-                
-                messagesHTML += `
-                    <div class="message fade-in">
-                        <div class="message-header">
-                            <span><i class="fas fa-user-secret"></i> Anônimo</span>
-                            <span>${timeAgo}</span>
-                        </div>
-                        <div class="message-content">${message.content}</div>
-                        <div class="message-actions">
-                            <button class="action-btn" onclick="copyMessage('${message.id}')">
-                                <i class="fas fa-copy"></i> Copiar
-                            </button>
-                            <button class="action-btn" onclick="shareMessage('${message.content}')">
-                                <i class="fas fa-share-alt"></i> Compartilhar
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            messagesContainer.innerHTML = messagesHTML;
-        }
+function displayMembers(members) {
+    const container = document.getElementById('members-list');
+    container.innerHTML = '';
 
-        // Atualizar estatísticas
-        function updateStats() {
-            const today = new Date().toISOString().split('T')[0];
-            
-            totalMessagesEl.textContent = messages.length;
-            todayMessagesEl.textContent = messages.filter(msg => {
-                const msgDate = new Date(msg.timestamp).toISOString().split('T')[0];
-                return msgDate === today;
-            }).length;
-            
-            // Simular usuários online (em uma aplicação real, isso viria do servidor)
-            onlineUsersEl.textContent = Math.max(1, Math.floor(Math.random() * 5) + 1);
-        }
+    members.forEach(member => {
+        const card = document.createElement('div');
+        card.className = 'member-card';
+        card.innerHTML = `
+            <h3>${member.name}</h3>
+            <p><strong>Email:</strong> ${member.email}</p>
+            <p><strong>Entrada:</strong> ${formatDate(member.entryDate)}</p>
+            <p><strong>Saída:</strong> ${member.exitDate ? formatDate(member.exitDate) : 'Ativo'}</p>
+            <p><strong>Cargo:</strong> ${member.position}</p>
+            <button onclick="openEditModal('${member._id}')">Editar</button>
+        `;
+        container.appendChild(card);
+    });
+}
 
-        // Função auxiliar para calcular tempo relativo
-        function getTimeAgo(timestamp) {
-            const now = new Date();
-            const messageTime = new Date(timestamp);
-            const diffMs = now - messageTime;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-            
-            if (diffMins < 1) return 'Agora mesmo';
-            if (diffMins < 60) return `Há ${diffMins} min`;
-            if (diffHours < 24) return `Há ${diffHours} h`;
-            if (diffDays < 7) return `Há ${diffDays} dia${diffDays > 1 ? 's' : ''}`;
-            
-            return messageTime.toLocaleDateString('pt-BR');
-        }
+function openEditModal(memberId) {
+    // Buscar dados do membro e preencher o modal
+    // Implementar conforme necessário
+    document.getElementById('edit-modal').style.display = 'block';
+}
 
-        // Auto-refresh
-        function startAutoRefresh() {
-            setInterval(() => {
-                if (Date.now() - lastUpdate > UPDATE_INTERVAL) {
-                    loadMessages();
-                }
-            }, UPDATE_INTERVAL);
-        }
+function closeModal() {
+    document.getElementById('edit-modal').style.display = 'none';
+}
 
-        // Fallback para localStorage
-        function saveMessageLocal(message) {
-            let localMessages = JSON.parse(localStorage.getItem('curioscatMessages')) || [];
-            localMessages.unshift(message);
-            localStorage.setItem('curioscatMessages', JSON.stringify(localMessages));
-            messages = localMessages;
-            displayMessages();
-            updateStats();
-        }
+// Funções do Membro
+function loadMemberForm() {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const container = document.getElementById('member-form-container');
+    
+    container.innerHTML = `
+        <div class="member-form">
+            <form id="update-member-form">
+                <div>
+                    <label>Nome:</label>
+                    <input type="text" id="member-name" value="${user.name}" required>
+                </div>
+                <div>
+                    <label>Email:</label>
+                    <input type="email" id="member-email" value="${user.email}" required>
+                </div>
+                <div>
+                    <label>Data de Entrada:</label>
+                    <input type="date" id="member-entry-date" value="${user.entryDate}" required>
+                </div>
+                <div>
+                    <label>Data de Saída:</label>
+                    <input type="date" id="member-exit-date" value="${user.exitDate || ''}">
+                </div>
+                <div>
+                    <label>Cargo:</label>
+                    <input type="text" id="member-position" value="${user.position}" required>
+                </div>
+                <button type="submit">Atualizar Ficha</button>
+            </form>
+        </div>
+    `;
 
-        // Copiar mensagem
-        function copyMessage(messageId) {
-            const message = messages.find(m => m.id === messageId);
-            if (message) {
-                navigator.clipboard.writeText(message.content)
-                    .then(() => {
-                        showNotification('Mensagem copiada!');
-                    })
-                    .catch(err => {
-                        console.error('Erro ao copiar:', err);
-                    });
-            }
-        }
+    document.getElementById('update-member-form').addEventListener('submit', updateMemberData);
+}
 
-        // Compartilhar mensagem
-        function shareMessage(content) {
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Mensagem Anônima - Curioscat',
-                    text: content,
-                })
-                .then(() => console.log('Compartilhado com sucesso'))
-                .catch((error) => console.log('Erro ao compartilhar:', error));
-            } else {
-                copyMessage(content);
-            }
-        }
+async function updateMemberData(e) {
+    e.preventDefault();
+    
+    const token = localStorage.getItem('token');
+    const formData = {
+        name: document.getElementById('member-name').value,
+        email: document.getElementById('member-email').value,
+        entryDate: document.getElementById('member-entry-date').value,
+        exitDate: document.getElementById('member-exit-date').value || null,
+        position: document.getElementById('member-position').value
+    };
 
-        // Mostrar notificação
-        function showNotification(text, type = 'success') {
-            notificationText.textContent = text;
-            notification.className = 'notification';
-            
-            const icon = notification.querySelector('i');
-            if (type === 'error') {
-                notification.classList.add('error');
-                icon.className = 'fas fa-exclamation-circle';
-            } else {
-                icon.className = 'fas fa-check-circle';
-            }
-            
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 4000);
+    try {
+        const response = await fetch(`${API_BASE_URL}/members/profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+            alert('Dados atualizados com sucesso!');
+        } else {
+            alert('Erro ao atualizar dados');
         }
-    </script>
-</body>
-</html>
+    } catch (error) {
+        alert('Erro de conexão');
+    }
+}
+
+// Utilitários
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+}
+
+function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    currentUser = null;
+    showScreen('login-screen');
+}
+
+// Verificar autenticação ao carregar a página
+window.addEventListener('load', () => {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    
+    if (token && user) {
+        currentUser = JSON.parse(user);
+        if (currentUser.role === 'admin') {
+            showScreen('admin-dashboard');
+            loadMembers();
+        } else {
+            showScreen('member-dashboard');
+            loadMemberForm();
+        }
+    } else {
+        showScreen('login-screen');
+    }
+});
